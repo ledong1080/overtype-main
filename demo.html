@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OverType - Interactive Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "SF Mono", SFMono-Regular, Menlo, Monaco, "Cascadia Code", Consolas, "Roboto Mono", "Noto Sans Mono", "Droid Sans Mono", "Ubuntu Mono", "DejaVu Sans Mono", "Liberation Mono", "Courier New", Courier, monospace;
+            font-synthesis: none; /* no faux bold/italic width drift */
+            font-variant-ligatures: none; /* keep metrics stable for code */
+            background: #000;
+            color: #fff;
+            font-size: 14px;
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .hero {
+            text-align: center;
+            color: white;
+            padding: 30px 20px 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .hero .tagline {
+            font-size: 1rem;
+            opacity: 0.7;
+            margin-top: 10px;
+        }
+
+        .demo-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 20px;
+        }
+
+        @media (max-width: 968px) {
+            .demo-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .demo-section {
+            background: #0a0a0a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .demo-header {
+            padding: 15px 20px;
+            background: #111;
+            color: #fff;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .demo-header h2 {
+            font-size: 14px;
+            font-weight: normal;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.9;
+        }
+
+        .demo-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 6px 12px;
+            background: transparent;
+            border: 1px solid #666;
+            color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .btn:hover {
+            background: #fff;
+            color: #000;
+            border-color: #fff;
+        }
+
+        .editor-wrapper {
+            height: 350px;
+            position: relative;
+        }
+
+        .theme-toggle {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+            padding: 10px 15px;
+            background: #4251de;
+            border: 1px solid #1b257d;
+            color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-family: inherit;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.2s;
+        }
+
+        .theme-toggle:hover {
+            background: #fff;
+            color: #000;
+            border-color: #fff;
+        }
+
+        .github-link {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: #fff;
+            text-decoration: none;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+            font-size: 12px;
+        }
+
+        .github-link:hover {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <a href="https://github.com/panphora/overtype" class="github-link">View on GitHub →</a>
+
+    <div class="hero">
+        <img src="logo-text.svg" alt="OverType" style="width: 300px; max-width: 90%; margin: 0 auto 20px; display: block;">
+        <p class="tagline">Interactive Demo - Try all the features</p>
+    </div>
+
+    <div class="demo-container">
+        <!-- Main Editor with Toolbar -->
+        <div class="demo-section">
+            <div class="demo-header">
+                <h2>Main Editor</h2>
+                <div class="demo-controls">
+                    <button class="btn" onclick="editors.main.getValue() && alert('Content: ' + editors.main.getValue().substring(0, 100) + '...')">Get Value</button>
+                    <button class="btn" onclick="editors.main.setValue('# New Content\n\nEditor reset!')">Set Value</button>
+                </div>
+            </div>
+            <div id="main-editor" class="editor-wrapper"></div>
+        </div>
+
+        <!-- Preview Editor -->
+        <div class="demo-section">
+            <div class="demo-header">
+                <h2>Live Preview</h2>
+                <div class="demo-controls">
+                    <button class="btn" onclick="syncWithMain()">Sync with Main</button>
+                </div>
+            </div>
+            <div id="preview-editor" class="editor-wrapper"></div>
+        </div>
+
+        <!-- Notes Editor -->
+        <div class="demo-section">
+            <div class="demo-header">
+                <h2>Notes</h2>
+                <div class="demo-controls">
+                    <button class="btn" onclick="editors.notes.setValue('')">Clear</button>
+                </div>
+            </div>
+            <div id="notes-editor" class="editor-wrapper"></div>
+        </div>
+
+        <!-- Code Editor -->
+        <div class="demo-section">
+            <div class="demo-header">
+                <h2>Code Editor</h2>
+            </div>
+            <div id="code-editor" class="editor-wrapper"></div>
+        </div>
+    </div>
+
+    <!-- Theme Toggle -->
+    <button class="theme-toggle" onclick="toggleTheme()">
+        Toggle Theme
+    </button>
+
+    <script src="dist/overtype.min.js"></script>
+    <script>
+        let editors = {};
+        
+        // Sample content for each editor
+        const sampleContent = {
+            main: `# Welcome to OverType
+
+A **lightweight** markdown editor with perfect WYSIWYG alignment.
+
+## Features
+- 🚀 Lightning fast performance
+- 🎨 Theme support
+- ⌨️ Keyboard shortcuts
+- 📱 Mobile optimized
+
+Try typing some markdown!`,
+
+            preview: `# Live Preview Demo
+
+Watch as your **markdown** transforms in real-time!
+
+## Links
+Move your cursor into this link to see the tooltip:
+[GitHub Repository](https://github.com/panphora/overtype)
+
+## Code Support
+Inline \`code\` and blocks:
+
+\`\`\`javascript
+const editor = new OverType('#editor');
+\`\`\``,
+
+            notes: `# Quick Notes
+
+Use this space for:
+- Todo lists
+- Meeting notes
+- Code snippets
+- Draft content
+
+> Tip: Use Tab to indent!`,
+
+            code: `# Code Documentation
+
+## Installation
+\`\`\`bash
+npm install overtype
+\`\`\`
+
+## Basic Usage
+\`\`\`javascript
+import OverType from 'overtype';
+
+const editor = new OverType('#editor', {
+  theme: 'cave',
+  toolbar: true
+});
+\`\`\`
+
+## API Methods
+- \`getValue()\` - Get markdown content
+- \`setValue(text)\` - Set content
+- \`setTheme(name)\` - Change theme`
+        };
+
+        // Initialize all editors
+        function initEditors() {
+            const OT = window.OverType.default || window.OverType;
+            
+            // Set initial theme
+            OT.setTheme('solar');
+            
+            // Main editor with toolbar
+            [editors.main] = new OT('#main-editor', {
+                value: sampleContent.main,
+                showStats: true,
+                toolbar: true
+            });
+
+            // Preview editor with toolbar
+            [editors.preview] = new OT('#preview-editor', {
+                value: sampleContent.preview,
+                showStats: true,
+                toolbar: true
+            });
+
+            // Notes editor
+            [editors.notes] = new OT('#notes-editor', {
+                value: sampleContent.notes,
+                showStats: true
+            });
+
+            // Code editor
+            [editors.code] = new OT('#code-editor', {
+                value: sampleContent.code,
+                fontSize: '13px',
+                showStats: true
+            });
+        }
+
+        // Toggle theme globally
+        function toggleTheme() {
+            const OT = window.OverType.default || window.OverType;
+            const currentTheme = OT.currentTheme?.name || 'solar';
+            const newTheme = currentTheme === 'solar' ? 'cave' : 'solar';
+            OT.setTheme(newTheme);
+        }
+
+        // Sync preview with main
+        function syncWithMain() {
+            if (editors.main && editors.preview) {
+                editors.preview.setValue(editors.main.getValue());
+            }
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', initEditors);
+    </script>
+</body>
+</html>
